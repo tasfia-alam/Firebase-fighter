@@ -31,12 +31,12 @@ const SignUp = () => {
 
       createUserWithEmailAndPassword( auth, email, password )
       .then((res) =>{
-        console.log(res);
+         console.log(res);
         toast.success("sign up successful")
       })
       .catch((e) => {
-        console.log(e)
-        console.log(e.code);
+        // console.log(e)
+        // console.log(e.code);
         toast.error(e.message);
       });
     };
