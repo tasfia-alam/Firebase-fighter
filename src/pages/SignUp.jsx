@@ -1,38 +1,82 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import MyContainer from '../components/MyContainer';
 import { Link } from 'react-router';
-import {  createUserWithEmailAndPassword } from "firebase/auth";
+import {  createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { auth } from '../firebase/firebase.config';
 import { toast } from 'react-toastify';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
+import { AuthContext } from '../context/AuthContext';
+import { SiAwselasticloadbalancing } from 'react-icons/si';
 
 
 const SignUp = () => {
  
     const[show, setShow] = useState(false);
+    const { createUserWithEmailAndPasswordFunc, sendEmailVerificationFunc,
+    updateProfileFunc,
+    SetLoading,
+    signOutUserFunc,
+    setUser,
+    } = useContext(AuthContext);
 
+    const result = useContext(AuthContext);
+    console.log(result);
 
     const handlesignup = (e) => {
         e.preventDefault();
+        const displayName = e.target.name?.value;
+        const photoURL = e.target.photo?.value;
         const email = e.target.email?.value;
         const password = e.target.password?.value;
-        console.log("asgagasgdmeee",{ email, password});
+
+
+        console.log("Signup function entered",
+            { email, password, photoURL, displayName});
+        
         //console.log(password.length);
         // if(password.length < 6){
         //     toast.error("password should be at least 6 digit");
         //     return;
         // }
-        const regExp =  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const regExp = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+
         if(!regExp.test(password)){
             toast.error("❌ Password must include uppercase, lowercase, number, and special character.");
             return;
         }
-
-      createUserWithEmailAndPassword( auth, email, password )
+        //1st step create user
+      //createUserWithEmailAndPassword( auth, email, password )
+     createUserWithEmailAndPasswordFunc (email, password)
       .then((res) =>{
-         console.log(res);
-        toast.success("sign up successful")
+        //2nd step update profile
+        updateProfileFunc(
+          displayName,
+          photoURL,
+        ).then(() =>{
+            //3rd step email verfication
+            sendEmailVerificationFunc()
+            .then((res) => {
+            console.log(res);
+            //setLoading(false);
+
+        //signout user
+        signOutUserFunc() // <-- এখানে ফাংশন কল দিতে হবে
+          .then(() => {   
+         toast.success("sign up successful. check ur gmail to validate");
+            setUser(null);
+          });
+
+            }).catch((e) =>{
+                toast.error(e.message);
+            });
+
+        }).catch((e) =>{
+            toast.error(e.message)
+        });
+
+        
       })
       .catch((e) => {
         // console.log(e)
@@ -61,16 +105,45 @@ const SignUp = () => {
 
     <form onSubmit={handlesignup} className='space-y-4'>
         <div>
+
+        <label className="block text-sm font-medium mb-1 text-white">
+            Name
+            </label>
+            <input 
+            type="text" 
+            name='name'
+            placeholder='write your name'
+            className='input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400'
+            
+            />
+
+        
            <label className="block text-sm font-medium mb-1 text-white">
+            Photo URL
+            </label>
+            <input 
+            type="text" 
+            name='photo'
+            placeholder='photo'
+            className='input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400'
+            
+            />
+
+        <label className="block text-sm font-medium mb-1 text-white">
             Email
             </label>
             <input 
             type="email" 
             name='email'
-            placeholder='example@gmail.com'
+            placeholder='email'
             className='input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400'
             
             />
+
+
+
+
+
         </div>
     <div className='relative'>
         <label className='block text-sm font-medium mb-1'>password</label>

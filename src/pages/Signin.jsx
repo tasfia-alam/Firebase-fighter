@@ -1,30 +1,60 @@
-import React, { useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import MyContainer from '../components/MyContainer';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { FaEye } from 'react-icons/fa';
 import { IoEyeOff } from 'react-icons/io5';
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
-import { auth } from '../firebase/firebase.config';
+
 import { toast } from 'react-toastify';
-
-
-const googleProvider = new GoogleAuthProvider();
-
+import { AuthContext } from '../context/AuthContext';
+import { useLocation } from 'react-router';
 
 
 const Signin = () => {
-    const[user, setUser] =  useState(null);
+    //const[user, setUser] =  useState(null);
     const[show, setShow] = useState(false);
+    const { signInWithEmailAndPasswordFunc, 
+        signInWithEmailFunc,
+        signInWithGithubFunc,
+
+        sendPasswordResetEmailFunc,
+        loading,
+        setLoading,
+        user,
+        setUser,
+      } = useContext(AuthContext);
+
+    const location = useLocation();
+    const from = location.state || "/";
+    const navigate = useNavigate();
+
+    if (user) {
+        navigate("/");
+        return;
+    }
+
+    console.log(location);
+
+
+    const emailRef = useRef(null);
+
     const handlesignin = (e) => {
         e.preventDefault();
+
         const email = e.target.email?.value;
         const password = e.target.password?.value;
-        console.log("asgagasgdmeee111",{ email, password}); 
-        signInWithEmailAndPassword(auth, email, password)
+        console.log(email, password); 
+        signInWithEmailAndPasswordFunc(email, password)
         .then(res =>{
+            console.log(res);
+            setLoading(false);
+            if(!res.user?.emailVerified){
+                toast.error("your email is not verified");
+                return;
+            }
             console.log(res.user);
             setUser(res.user);
             toast.success("sign in successfull");
+            navigate(from);
         })
         .catch((e) =>{
             console.log(e);
@@ -34,11 +64,12 @@ const Signin = () => {
 
 
     const handleGoogleSigin = () => {
-        signInWithPopup(auth, googleProvider)
+        signInWithEmailFunc()
          .then(res =>{
             console.log(res.user);
             setUser(res.user);
             toast.success("sign in successfull");
+            navigate(from);
         })
         .catch((e) =>{
             console.log(e);
@@ -48,18 +79,35 @@ const Signin = () => {
     };
 
 
-
-
-    const handleSignout = () => {
-        signOut(auth).then(() =>{
-            toast.success("Signout Successfull");
-            setUser(null);
+    const handleGithubSignIn = () => {
+        signInWithGithubFunc()
+        .then(res =>{
+            console.log(res);
+            setLoading(false);
+            setUser(res.user);
+            toast.success("sign in successfull");
+            navigate(from);
         })
-        .catch((e) => {
+        .catch((e) =>{
+            console.log(e);
             toast.error(e.message);
         });
+    }
 
+    const handleForgetPassword = () =>{
+        console.log();
+        const email = emailRef.current.value;
+        sendPasswordResetEmailFunc(email)
+        .then((res) =>{
+            setLoading(false);
+            toast.success("check your email to reset password");
+        }).catch((e) => {
+            toast.error(e.message);
+        });
     };
+
+
+
 
     console.log(user);
 
@@ -81,15 +129,6 @@ const Signin = () => {
             </p>
         </div>
         <div className="w-full max-w-md backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl rounded-2xl p-8">
-    {user ? (
-        <div className='text-center space-y-3'>
-            <img src={user?.photoURL || "https://via.placeholder.com/150"} className='h-20 w-20 rounded-full mx-auto' alt="" />
-            <h2 className='text-xl font-semibold'>
-                {user?.displayName} </h2>
-            <p className='text-white/80'>{user?.email}</p>
-            <button onClick={handleSignout} className='my-btn'>Sign Out</button>    
-        </div>
-    ) : (
 
             <form onSubmit={handlesignin} className='space-y-4'>
                 <h2 className='text-2xl font-semibold text-center mb-6 text-white'>sign In</h2>
@@ -100,6 +139,7 @@ const Signin = () => {
             <input 
             type="email" 
             name='email'
+            ref = {emailRef}
             placeholder='example@gmail.com'
             className='input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400'
             
@@ -116,10 +156,14 @@ const Signin = () => {
     className='absolute right-[8px] top-[36px] cursor-pointer z-50 text-white'>
         {show ? <FaEye /> : <IoEyeOff />}
     </span>
-
-
-
         </div>
+{/* forget password */}
+        <button onClick={handleForgetPassword} className='hover:underline cursor-pointer'
+        type="submit"
+        >
+            Forget password?
+        </button>
+
         <button type='submit' className="my-btn">
             LogIn
        </button>
@@ -129,6 +173,7 @@ const Signin = () => {
         <div className="h-px w-16 bg-white/30"></div>
 
        </div>
+       {/* google signin */}
         <button type="button"
             onClick={handleGoogleSigin}
             className='flex items-center mx-auto gap-3 bg-white text-gray px-10  py-1 rounded-lg cursor-pointer'>
@@ -137,6 +182,21 @@ const Signin = () => {
         <span>Continue with Google</span>       
 
         </button>
+{/* github signin */}
+        <button type="button"
+            onClick={handleGithubSignIn}
+            className='flex items-center mx-auto gap-3 bg-white text-gray px-10  py-1 rounded-lg cursor-pointer'>
+        <img src="https://images.icon-icons.com/3685/PNG/512/github_logo_icon_229278.png" alt="" className='w-[20px]' /> 
+
+        <span>Continue with Github</span>       
+
+        </button>
+
+
+
+
+
+
 
     <div className='text-center mt-3'>
         <p className='text-sm text-white/80'>
@@ -154,7 +214,7 @@ const Signin = () => {
 
 
 
-    )}
+
 
 
 
